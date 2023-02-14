@@ -6,9 +6,7 @@ import {render, screen, act} from '@testing-library/react'
 import Location from '../../examples/location'
 
 beforeAll(() => {
-  window.navigator.geolocation = {
-    getCurrentPosition: jest.fn(),
-  }
+  window.navigator.geolocation = {getCurrentPosition: jest.fn()}
 })
 
 function deferred() {
@@ -23,8 +21,8 @@ function deferred() {
 test('displays the users current location', async () => {
   const fakePosition = {
     coords: {
-      latitude: 35,
-      longitude: 139,
+      latitude: 51,
+      longitude: 6,
     },
   }
   const {promise, resolve} = deferred()
@@ -33,7 +31,6 @@ test('displays the users current location', async () => {
   )
 
   render(<Location />)
-
   expect(screen.getByLabelText(/loading/i)).toBeInTheDocument()
 
   await act(async () => {
@@ -42,7 +39,6 @@ test('displays the users current location', async () => {
   })
 
   expect(screen.queryByLabelText(/loading/i)).not.toBeInTheDocument()
-
   expect(screen.getByText(/latitude/i)).toHaveTextContent(
     `Latitude: ${fakePosition.coords.latitude}`,
   )
@@ -50,3 +46,27 @@ test('displays the users current location', async () => {
     `Longitude: ${fakePosition.coords.longitude}`,
   )
 })
+
+test('displays error message when geolocation is not supported', async () => {
+  const fakeError = new Error('ERROR!!!')
+  const {promise, reject} = deferred()
+  window.navigator.geolocation.getCurrentPosition.mockImplementation(
+    (successCallback, errorCallback) =>
+      promise.catch(() => errorCallback(fakeError)),
+  )
+
+  render(<Location />)
+  expect(screen.getByLabelText(/loading/i)).toBeInTheDocument()
+
+  await act(async () => {
+    reject()
+  })
+
+  expect(screen.queryByLabelText(/loading/i)).not.toBeInTheDocument()
+  expect(screen.getByRole(/alert/i)).toHaveTextContent(fakeError.message)
+})
+
+/*
+eslint
+  no-unused-vars: "off",
+*/
